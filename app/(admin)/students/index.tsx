@@ -491,29 +491,31 @@ export default function Students() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text className="text-base font-jakarta-medium text-slate-500">
-          Directory
-        </Text>
-        <Text className="mt-0.5 text-3xl font-jakarta-bold tracking-tight text-slate-900">
-          {isAdmin ? "All Students" : isSales ? "Leads" : "My Students"}
-        </Text>
-        <View className="mt-1 flex-row items-start justify-between gap-3">
-          <Text className="flex-1 text-sm text-slate-400">
-            {isSales
-              ? "Lead management."
-              : isAdmin
-                ? "Showing all student records across destinations and statuses."
-                : selectedCountryName
-                  ? `Showing students for ${selectedCountryName}.`
-                  : "Select a country or status to load student records."}
-          </Text>
+        <View className="flex-row items-stretch justify-between gap-3">
+          <View className="min-w-0 flex-1">
+            <Text className="text-base font-jakarta-medium text-slate-500">
+              Directory
+            </Text>
+            <Text className="mt-0.5 text-3xl font-jakarta-bold tracking-tight text-slate-900">
+              {isAdmin ? "All Students" : isSales ? "Leads" : "My Students"}
+            </Text>
+            <Text className="mt-1 text-sm text-slate-400">
+              {isSales
+                ? "Lead management."
+                : isAdmin
+                  ? "Showing all student records across destinations and statuses."
+                  : selectedCountryName
+                    ? `Showing students for ${selectedCountryName}.`
+                    : "Select a country or status to load student records."}
+            </Text>
+          </View>
           <Pressable
             onPress={() => router.push("/(admin)/students/add")}
-            className="items-center justify-center rounded-2xl bg-blue-500 px-3.5 py-2.5 active:bg-blue-600 active:opacity-90"
+            className="self-stretch items-center justify-center rounded-2xl bg-blue-500 px-3.5 active:bg-blue-600 active:opacity-90"
           >
             <GraduationCap size={18} color="#fff" strokeWidth={2} />
             <Text className="mt-0.5 text-[11px] font-semibold leading-tight text-white">
-              Add
+              + Add
             </Text>
             <Text className="text-[11px] font-semibold leading-tight text-white">
               Student

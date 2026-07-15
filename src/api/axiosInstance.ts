@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const API_BASE_URL = "http://52.66.255.141:8080";
+export const API_BASE_URL = "https://api.consultrak.in";
 
 const axiosInstance = axios.create({ baseURL: API_BASE_URL });
 
