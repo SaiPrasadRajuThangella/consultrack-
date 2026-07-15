@@ -22,6 +22,11 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.saiprasadraju678.consultrack"
     },
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#ffffff",
+      "translucent": true
+    },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"

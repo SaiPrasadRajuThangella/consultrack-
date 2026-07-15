@@ -5,6 +5,7 @@ export interface User {
     userId?: string | number;
     userid?: string | number;
     userName?: string;
+    logoUrl?: string;
     countryId?: number | number[];
     [key: string]: unknown;
   }

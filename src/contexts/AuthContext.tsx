@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<User>) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -61,8 +62,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.multiRemove(["token", "refreshToken", "userdata"]);
   };
 
+  const updateUser = async (patch: Partial<User>) => {
+    const next = { ...(user ?? {}), ...patch } as User;
+    setUser(next);
+    await AsyncStorage.setItem("userdata", JSON.stringify(next));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        updateUser,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

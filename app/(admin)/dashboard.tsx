@@ -27,7 +27,6 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import axiosInstance from "@/src/api/axiosInstance";
 import { KpiCard } from "@/src/components/KpiCard";
-import { useAuth } from "@/src/contexts/AuthContext";
 import { getDisplayStatus } from "@/src/lib/statusMapper";
 import { cn } from "@/src/lib/utils";
 import { chartTextStyle } from "@/src/theme/fonts";
@@ -282,9 +281,6 @@ const chartWidth = Dimensions.get("window").width - 48;
 // ─────────────────────────────────────────────
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const displayName = user?.userName?.trim() || "there";
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({});
@@ -720,10 +716,12 @@ export default function Dashboard() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-      <Text className="text-base font-jakarta-italic text-slate-500">Welcome back,</Text>
-<Text className="mt-0.5 text-3xl font-medium font-jakarta tracking-tight text-slate-900">
-  {displayName}
-</Text>
+      <Text className="text-3xl font-medium font-jakarta tracking-tight text-slate-900">
+          Dashboard
+        </Text>
+        <Text className="mt-1 text-sm text-slate-500">
+          Track students, applications, and consultancy performance at a glance.
+        </Text>
 
         <DashboardFilters
           countryOptions={countryOptions}

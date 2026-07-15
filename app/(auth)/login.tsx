@@ -33,7 +33,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
+  const canSubmit = trimmedEmail.length > 0 && trimmedPassword.length > 0 && !loading;
   const isKeyboardOpen = keyboardHeight > 0;
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function Login() {
     Keyboard.dismiss();
     setLoading(true);
     setError("");
-    const res = await login(email.trim(), password);
+    const res = await login(trimmedEmail, trimmedPassword);
     setLoading(false);
     if (res.success) {
       router.replace("/(admin)/dashboard");
@@ -157,7 +159,10 @@ export default function Login() {
                       value={email}
                       onChangeText={setEmail}
                       onFocus={() => setFocused("email")}
-                      onBlur={() => setFocused(null)}
+                      onBlur={() => {
+                        setFocused(null);
+                        setEmail((v) => v.trim());
+                      }}
                       returnKeyType="next"
                       className="flex-1 px-3 py-5 text-sm text-slate-900"
                     />
@@ -186,7 +191,10 @@ export default function Login() {
                       value={password}
                       onChangeText={setPassword}
                       onFocus={() => setFocused("password")}
-                      onBlur={() => setFocused(null)}
+                      onBlur={() => {
+                        setFocused(null);
+                        setPassword((v) => v.trim());
+                      }}
                       onSubmitEditing={() => void handleLogin()}
                       returnKeyType="go"
                       className="flex-1 px-3 py-5 text-sm text-slate-900"
@@ -250,7 +258,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   logo: {
-    width: 260,
+    width: 300,
     height: 88,
   },
   card: {
