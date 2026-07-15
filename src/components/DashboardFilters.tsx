@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { BottomSheetSelect, type SelectOption } from "@/src/components/BottomSheetSelect";
 import { Text } from "@/src/components/ui/Text";
@@ -18,6 +18,7 @@ type DashboardFiltersProps = {
   onSearch: () => void;
   onReset: () => void;
   hasActiveFilters?: boolean;
+  isLoading?: boolean;
 };
 
 export function DashboardFilters({
@@ -33,11 +34,14 @@ export function DashboardFilters({
   onSearch,
   onReset,
   hasActiveFilters = false,
+  isLoading = false,
 }: DashboardFiltersProps) {
   const [expanded, setExpanded] = useState(false);
 
   const isDraftApplied =
     selectedCountry !== "all" || intakeMonth !== "" || intakeYear !== "";
+
+  const canSearch = isDraftApplied && !isLoading;
 
   return (
     <View className="mt-4">
@@ -53,6 +57,7 @@ export function DashboardFilters({
           {hasActiveFilters ? (
             <View className="h-2 w-2 rounded-full bg-blue-500" />
           ) : null}
+          {isLoading ? <ActivityIndicator size="small" color="#3b82f6" /> : null}
         </View>
         <Feather
           name={expanded ? "chevron-up" : "chevron-down"}
@@ -95,29 +100,37 @@ export function DashboardFilters({
           <View className="mt-4 flex-row gap-3">
             <Pressable
               onPress={onSearch}
-              disabled={!isDraftApplied}
+              disabled={!canSearch}
               className={cn(
                 "flex-1 flex-row items-center justify-center gap-2 rounded-xl py-3.5",
-                isDraftApplied ? "bg-blue-600 active:bg-blue-700" : "bg-slate-200",
+                canSearch ? "bg-blue-600 active:bg-blue-700" : "bg-slate-200",
               )}
             >
-              <Feather
-                name="search"
-                size={16}
-                color={isDraftApplied ? "#fff" : "#94a3b8"}
-              />
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Feather
+                  name="search"
+                  size={16}
+                  color={canSearch ? "#fff" : "#94a3b8"}
+                />
+              )}
               <Text
                 className={cn(
                   "font-semibold",
-                  isDraftApplied ? "text-white" : "text-slate-400",
+                  canSearch ? "text-white" : "text-slate-400",
                 )}
               >
-                Search
+                {isLoading ? "Loading…" : "Search"}
               </Text>
             </Pressable>
             <Pressable
               onPress={onReset}
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-3.5 active:bg-slate-100"
+              disabled={isLoading}
+              className={cn(
+                "flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-3.5",
+                isLoading ? "opacity-50" : "active:bg-slate-100",
+              )}
             >
               <Feather name="rotate-ccw" size={16} color="#64748b" />
               <Text className="font-semibold text-slate-600">Reset</Text>

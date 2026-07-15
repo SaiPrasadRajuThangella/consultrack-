@@ -23,6 +23,7 @@ type BottomSheetSelectProps = {
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 };
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -35,6 +36,7 @@ export function BottomSheetSelect({
   options,
   value,
   onChange,
+  disabled = false,
 }: BottomSheetSelectProps) {
   const [visible, setVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
@@ -73,11 +75,19 @@ export function BottomSheetSelect({
 
   return (
     <>
-      <View>
-        <Text className="mb-1.5 text-xs font-medium text-slate-500">{label}</Text>
+      <View className={cn(disabled && "opacity-50")}>
+        {label ? (
+          <Text className="mb-1.5 text-xs font-medium text-slate-500">{label}</Text>
+        ) : null}
         <Pressable
-          onPress={() => setVisible(true)}
-          className="flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3.5 active:bg-slate-50"
+          onPress={() => {
+            if (!disabled) setVisible(true);
+          }}
+          disabled={disabled}
+          className={cn(
+            "flex-row items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-3.5",
+            disabled ? "bg-slate-50" : "active:bg-slate-50",
+          )}
         >
           <Text
             className={cn(
@@ -115,7 +125,9 @@ export function BottomSheetSelect({
             </View>
 
             <View className="border-b border-slate-100 px-5 pb-3">
-              <Text className="text-base font-semibold text-slate-900">{label}</Text>
+              <Text className="text-base font-semibold text-slate-900">
+                {label || placeholder}
+              </Text>
             </View>
 
             <ScrollView

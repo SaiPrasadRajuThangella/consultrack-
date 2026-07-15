@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, usePathname } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { AppHeader } from "@/src/components/AppHeader";
@@ -8,6 +8,11 @@ import { FONT } from "@/src/theme/fonts";
 
 export default function AdminTabsLayout() {
   const { isAuthenticated, loading } = useAuth();
+  const pathname = usePathname();
+
+  // Hide Consultrack header on student profile — back bar is the only header there
+  const isStudentProfile =
+    /\/students\/[^/]+$/.test(pathname) && !pathname.endsWith("/add");
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -25,7 +30,7 @@ export default function AdminTabsLayout() {
 
   return (
     <View className="flex-1 bg-slate-50">
-      <AppHeader />
+      {!isStudentProfile ? <AppHeader /> : null}
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -47,11 +52,11 @@ export default function AdminTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="finance"
+        name="students"
         options={{
-          title: "Finance",
+          title: "Students",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="dollar-sign" color={color} size={size} />
+            <Feather name="book-open" color={color} size={size} />
           ),
         }}
       />
@@ -61,6 +66,15 @@ export default function AdminTabsLayout() {
           title: "Login Mgmt",
           tabBarIcon: ({ color, size }) => (
             <Feather name="users" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="finance"
+        options={{
+          title: "Finance",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="dollar-sign" color={color} size={size} />
           ),
         }}
       />

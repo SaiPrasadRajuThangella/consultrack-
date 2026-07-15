@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import axiosInstance from "@/src/api/axiosInstance";
 import { KpiCard } from "@/src/components/KpiCard";
 import { useAuth } from "@/src/contexts/AuthContext";
@@ -308,6 +309,18 @@ export default function Dashboard() {
   const [pipelineData, setPipelineData] = useState<PipelineTrendItem[]>([]);
   const [destinationData, setDestinationData] = useState<DestinationMixItem[]>([]);
   const [chartsLoading, setChartsLoading] = useState(false);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [pipelineTip, setPipelineTip] = useState<{
+    month: string;
+    students: number;
+    offers: number;
+    visas: number;
+  } | null>(null);
+  const [destinationTip, setDestinationTip] = useState<{
+    countryName: string;
+    applicationCount: number;
+    color: string;
+  } | null>(null);
 
   const isRestoringRef = useRef(false);
 
@@ -380,6 +393,7 @@ export default function Dashboard() {
 
   const fetchFilteredStudents = useCallback(
     async (status?: string, pageNumber = 0) => {
+      setFilterLoading(true);
       try {
         setIsFiltered(true);
         setCurrentStatus(status);
@@ -440,6 +454,8 @@ export default function Dashboard() {
       } catch (err) {
         console.error("fetchFilteredStudents error", err);
         Alert.alert("Error", "Failed to fetch filtered students");
+      } finally {
+        setFilterLoading(false);
       }
     },
     [appliedIntakeYear, appliedIntakeMonth, appliedCountryId],
@@ -494,6 +510,9 @@ export default function Dashboard() {
     setAppliedIntakeMonth(intakeMonth);
     setAppliedIntakeYear(intakeYear);
     setIsSearchClicked(true);
+    setPipelineTip(null);
+    setDestinationTip(null);
+    setFilterLoading(true);
 
     try {
       if (intakeMonth && intakeYear) {
@@ -511,6 +530,8 @@ export default function Dashboard() {
     } catch (err) {
       console.error("Search error", err);
       Alert.alert("Error", "Failed to fetch filtered data");
+    } finally {
+      setFilterLoading(false);
     }
   };
 
@@ -525,9 +546,16 @@ export default function Dashboard() {
     setIsSearchClicked(false);
     setIsFiltered(false);
     setFilteredStudents([]);
+    setPipelineTip(null);
+    setDestinationTip(null);
     dashboardMemory = null;
-    await loadAdminDashboard();
-    await fetchChartsWithApplied("", "", null);
+    setFilterLoading(true);
+    try {
+      await loadAdminDashboard();
+      await fetchChartsWithApplied("", "", null);
+    } finally {
+      setFilterLoading(false);
+    }
   };
 
   // ── Initial load ───────────────────────────
@@ -612,7 +640,7 @@ export default function Dashboard() {
       currentStatus,
       isSearchClicked,
     };
-    router.push(`/students/${studentId}` as never);
+    router.push(`/(admin)/students/${studentId}`);
   };
 
   const onCountryChange = (value: string) => {
@@ -633,15 +661,35 @@ export default function Dashboard() {
   const pipelineStudents = pipelineData.map((d) => ({
     value: d.students,
     label: d.month?.slice(0, 3) ?? "",
+    onPress: () => {
+      setDestinationTip(null);
+      setPipelineTip({
+        month: d.month,
+        students: d.students,
+        offers: d.offers,
+        visas: d.visas,
+      });
+    },
   }));
   const pipelineOffers = pipelineData.map((d) => ({ value: d.offers }));
   const pipelineVisas = pipelineData.map((d) => ({ value: d.visas }));
 
-  const pieData = destinationData.map((item, index) => ({
-    value: item.applicationCount,
-    color: DONUT_COLORS[index % DONUT_COLORS.length],
-    text: item.countryName,
-  }));
+  const pieData = destinationData.map((item, index) => {
+    const color = DONUT_COLORS[index % DONUT_COLORS.length];
+    return {
+      value: item.applicationCount,
+      color,
+      text: item.countryName,
+      onPress: () => {
+        setPipelineTip(null);
+        setDestinationTip({
+          countryName: item.countryName,
+          applicationCount: item.applicationCount,
+          color,
+        });
+      },
+    };
+  });
 
   const countryOptions = [
     { label: "All Countries", value: "all" },
@@ -672,10 +720,10 @@ export default function Dashboard() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <Text className="text-base font-jakarta-medium text-slate-500">Welcome back</Text>
-        <Text className="mt-0.5 text-3xl font-jakarta-bold tracking-tight text-slate-900">
-          {displayName}
-        </Text>
+      <Text className="text-base font-jakarta-italic text-slate-500">Welcome back,</Text>
+<Text className="mt-0.5 text-3xl font-medium font-jakarta tracking-tight text-slate-900">
+  {displayName}
+</Text>
 
         <DashboardFilters
           countryOptions={countryOptions}
@@ -690,12 +738,24 @@ export default function Dashboard() {
           onSearch={handleSearch}
           onReset={handleReset}
           hasActiveFilters={hasAppliedFilters}
+          isLoading={filterLoading}
         />
 
+        <View className="relative mt-4">
+          {filterLoading ? (
+            <View className="items-center justify-center rounded-2xl border border-slate-200 bg-white py-20">
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text className="mt-3 text-sm font-medium text-slate-600">
+                Loading data…
+              </Text>
+            </View>
+          ) : (
+            <>
         {/* KPI Grid — exactly 2 cards per row, uniform size */}
-        <View className="mt-4 flex-row flex-wrap justify-between gap-y-3">
+        <View className="flex-row flex-wrap justify-between gap-y-3">
           {statCards.map((card) => {
-            const clickable = isSearchClicked && card.filterKey !== undefined;
+            const clickable =
+              isSearchClicked && card.filterKey !== undefined && !filterLoading;
             return (
               <View key={card.key} className="w-[48.5%]">
                 <KpiCard
@@ -742,6 +802,9 @@ export default function Dashboard() {
             </View>
           ) : (
             <>
+              <Text className="mb-2 text-[11px] text-slate-400">
+                Tap a point to view details
+              </Text>
               <LineChart
                 areaChart
                 data={pipelineStudents}
@@ -760,7 +823,12 @@ export default function Dashboard() {
                 startOpacity={0.25}
                 endOpacity={0.02}
                 thickness={3}
-                hideDataPoints
+                hideDataPoints={false}
+                dataPointsRadius={4}
+                dataPointsColor1="#3b82f6"
+                dataPointsColor2="#10b981"
+                dataPointsColor3="#f97316"
+                focusedDataPointRadius={6}
                 yAxisColor="transparent"
                 xAxisColor="#e2e8f0"
                 rulesColor="#e2e8f0"
@@ -768,7 +836,58 @@ export default function Dashboard() {
                 yAxisTextStyle={chartTextStyle}
                 xAxisLabelTextStyle={chartTextStyle}
                 noOfSections={4}
+                pointerConfig={{
+                  pointerStripHeight: 180,
+                  pointerStripColor: "#cbd5e1",
+                  pointerStripWidth: 1,
+                  strokeDashArray: [4, 4],
+                  pointerColor: "#3b82f6",
+                  radius: 5,
+                  pointerLabelWidth: 150,
+                  pointerLabelHeight: 95,
+                  activatePointersOnLongPress: false,
+                  autoAdjustPointerLabelPosition: true,
+                  persistPointer: true,
+                  pointerLabelComponent: (items: { value?: number; label?: string }[]) => {
+                    const month = items?.[0]?.label ?? "";
+                    const students = Number(items?.[0]?.value ?? 0);
+                    const offers = Number(items?.[1]?.value ?? 0);
+                    const visas = Number(items?.[2]?.value ?? 0);
+                    return (
+                      <View className="min-w-[130px] rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <Text className="mb-1 text-xs font-semibold text-slate-800">
+                          {month}
+                        </Text>
+                        <Text className="text-xs font-medium text-blue-500">
+                          Applications : {students}
+                        </Text>
+                        <Text className="text-xs font-medium text-emerald-500">
+                          Offers : {offers}
+                        </Text>
+                        <Text className="text-xs font-medium text-amber-500">
+                          Visas : {visas}
+                        </Text>
+                      </View>
+                    );
+                  },
+                }}
               />
+              {pipelineTip ? (
+                <View className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <Text className="text-xs font-semibold text-slate-800">
+                    {pipelineTip.month}
+                  </Text>
+                  <Text className="mt-1 text-xs font-medium text-blue-600">
+                    Applications : {pipelineTip.students}
+                  </Text>
+                  <Text className="text-xs font-medium text-emerald-600">
+                    Offers : {pipelineTip.offers}
+                  </Text>
+                  <Text className="text-xs font-medium text-amber-600">
+                    Visas : {pipelineTip.visas}
+                  </Text>
+                </View>
+              ) : null}
               <View className="mt-3 flex-row flex-wrap justify-center gap-4">
                 <LegendDot color="#3b82f6" label="Applications" />
                 <LegendDot color="#10b981" label="Offers" />
@@ -785,7 +904,7 @@ export default function Dashboard() {
               <Text className="text-base font-semibold text-slate-800">
                 Destination Mix
               </Text>
-              <Text className="mt-0.5 text-xs  font-jakarta text-slate-400">
+              <Text className="mt-0.5 text-xs font-jakarta text-slate-400">
                 Applications by country
               </Text>
             </View>
@@ -795,7 +914,7 @@ export default function Dashboard() {
           </View>
 
           {destinationData.length === 0 && !chartsLoading ? (
-            <Text className="py-10 text-center font-jakarta  text-sm text-slate-400">
+            <Text className="py-10 text-center font-jakarta text-sm text-slate-400">
               No destination data available.
             </Text>
           ) : chartsLoading ? (
@@ -804,6 +923,9 @@ export default function Dashboard() {
             </View>
           ) : (
             <View className="items-center">
+              <Text className="mb-2 self-start text-[11px] text-slate-400">
+                Tap a slice to view details
+              </Text>
               <PieChart
                 data={pieData}
                 donut
@@ -811,11 +933,38 @@ export default function Dashboard() {
                 innerRadius={55}
                 strokeWidth={2}
                 strokeColor="#fff"
+                focusOnPress
+                toggleFocusOnPress
+                extraRadiusForFocused={8}
               />
+              {destinationTip ? (
+                <View className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                  <View className="flex-row items-center gap-2">
+                    <View
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: destinationTip.color }}
+                    />
+                    <Text className="text-xs font-semibold text-slate-800">
+                      {destinationTip.countryName}
+                    </Text>
+                  </View>
+                  <Text className="mt-1 text-xs font-medium text-slate-600">
+                    Applications: {destinationTip.applicationCount}
+                  </Text>
+                </View>
+              ) : null}
               <View className="mt-3 w-full flex-row flex-wrap">
                 {destinationData.map((item, index) => (
-                  <View
+                  <Pressable
                     key={item.countryId}
+                    onPress={() => {
+                      setPipelineTip(null);
+                      setDestinationTip({
+                        countryName: item.countryName,
+                        applicationCount: item.applicationCount,
+                        color: DONUT_COLORS[index % DONUT_COLORS.length],
+                      });
+                    }}
                     className="mb-2 w-1/2 flex-row items-center justify-between px-1"
                   >
                     <View className="mr-1 min-w-0 flex-1 flex-row items-center gap-2">
@@ -836,7 +985,7 @@ export default function Dashboard() {
                     <Text className="text-[11px] font-semibold text-slate-800">
                       {item.applicationCount}
                     </Text>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -859,38 +1008,100 @@ export default function Dashboard() {
               </Text>
             ) : (
               <>
-                {filteredStudents.map((student) => {
-                  const id = student.id ?? student.studentId;
-                  return (
-                    <Pressable
-                      key={String(id)}
-                      onPress={() => saveMemoryAndNavigate(id!)}
-                      className="border-b border-slate-100 px-4 py-3"
-                    >
-                      <Text className="font-medium text-slate-900">
-                        {student.name}
-                      </Text>
-                      <Text className="mt-0.5 text-xs text-slate-400">
-                        {student.mail ?? "—"} · {student.phno ?? "—"}
-                      </Text>
-                      <View className="mt-2 flex-row flex-wrap gap-2">
-                        <Badge
-                          label={`${student.profileCompletionRate ?? 0}% profile`}
-                        />
-                        <Badge
-                          label={student.passportNumber ? "Passport" : "No passport"}
-                          tone={student.passportNumber ? "success" : "muted"}
-                        />
-                        <Badge
-                          label={
-                            student.documentSubmited ? "Submitted" : "Pending"
-                          }
-                          tone={student.documentSubmited ? "success" : "warn"}
-                        />
-                      </View>
-                    </Pressable>
-                  );
-                })}
+                <View className="gap-3 p-3">
+                  {filteredStudents.map((student) => {
+                    const id = student.id ?? student.studentId;
+                    const profilePct = Math.min(
+                      100,
+                      Math.max(0, Number(student.profileCompletionRate) || 0),
+                    );
+                    const initial = (
+                      student.name?.trim().charAt(0) || "?"
+                    ).toUpperCase();
+                    const submitted = Boolean(student.documentSubmited);
+
+                    return (
+                      <Pressable
+                        key={String(id)}
+                        onPress={() => saveMemoryAndNavigate(id!)}
+                        className="active:opacity-90 active:scale-[0.98]"
+                      >
+                        <LinearGradient
+                          colors={["#ffffff", "#f3f1fb"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{
+                            borderRadius: 20,
+                            borderWidth: 1,
+                            borderColor: "rgba(226,232,240,0.8)",
+                            padding: 16,
+                          }}
+                        >
+                          <View className="flex-row items-center gap-3">
+                            <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+                              <Text className="font-semibold text-white">
+                                {initial}
+                              </Text>
+                            </View>
+                            <View className="min-w-0 flex-1">
+                              <Text
+                                className="font-medium text-slate-900"
+                                numberOfLines={1}
+                              >
+                                {student.name}
+                              </Text>
+                              <Text
+                                className="mt-0.5 text-xs text-slate-400"
+                                numberOfLines={1}
+                              >
+                                {student.mail ?? "—"} · {student.phno ?? "—"}
+                              </Text>
+                              <View className="mt-1.5 flex-row items-center gap-2">
+                                <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                  <View
+                                    className="h-full rounded-full bg-blue-500"
+                                    style={{ width: `${profilePct}%` }}
+                                  />
+                                </View>
+                                <Text className="text-[10px] font-medium tabular-nums text-slate-600">
+                                  {profilePct}%
+                                </Text>
+                              </View>
+                              <Text
+                                className="mt-1 text-[10px] text-slate-400"
+                                numberOfLines={1}
+                              >
+                                {[
+                                  student.passportNumber || "No passport",
+                                  student.phno ?? "No phone",
+                                ].join(" · ")}
+                              </Text>
+                            </View>
+                            <View
+                              className={cn(
+                                "rounded-full border px-2 py-0.5",
+                                submitted
+                                  ? "border-emerald-500/40 bg-emerald-50"
+                                  : "border-amber-500/40 bg-amber-50",
+                              )}
+                            >
+                              <Text
+                                className={cn(
+                                  "text-[10px] font-medium",
+                                  submitted
+                                    ? "text-emerald-800"
+                                    : "text-amber-800",
+                                )}
+                              >
+                                {submitted ? "Submitted" : "Pending"}
+                              </Text>
+                            </View>
+                          </View>
+                        </LinearGradient>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
                 <View className="flex-row items-center justify-between border-t border-slate-200 px-4 py-3">
                   <Pressable
@@ -938,71 +1149,99 @@ export default function Dashboard() {
                 No recent students found.
               </Text>
             ) : (
-              recentStudents.map((student) => {
-                const id = student.id ?? student.studentId;
-                const status = studentStatusLabel(student);
-                const profilePct = Math.min(
-                  100,
-                  Math.max(0, Number(student.profileCompletionRate) || 0),
-                );
-                const initial = (
-                  student.name?.trim().charAt(0) || "?"
-                ).toUpperCase();
+              <View className="gap-3 p-3">
+                {recentStudents.map((student) => {
+                  const id = student.id ?? student.studentId;
+                  const status = studentStatusLabel(student);
+                  const profilePct = Math.min(
+                    100,
+                    Math.max(0, Number(student.profileCompletionRate) || 0),
+                  );
+                  const initial = (
+                    student.name?.trim().charAt(0) || "?"
+                  ).toUpperCase();
 
-                return (
-                  <Pressable
-                    key={String(id)}
-                    onPress={() => saveMemoryAndNavigate(id!)}
-                    className="flex-row items-center gap-3 border-b border-slate-100 px-4 py-3"
-                  >
-                    <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-600">
-                      <Text className="font-semibold text-white">{initial}</Text>
-                    </View>
-                    <View className="min-w-0 flex-1">
-                      <Text
-                        className="font-medium text-slate-900"
-                        numberOfLines={1}
+                  return (
+                    <Pressable
+                      key={String(id)}
+                      onPress={() => saveMemoryAndNavigate(id!)}
+                      className="active:opacity-90 active:scale-[0.98]"
+                    >
+                      <LinearGradient
+                        colors={["#ffffff", "#f3f1fb"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{
+                          borderRadius: 20,
+                          borderWidth: 1,
+                          borderColor: "rgba(226,232,240,0.8)",
+                          padding: 16,
+                        }}
                       >
-                        {student.name}
-                      </Text>
-                      <Text className="text-xs font-jakarta text-slate-400" numberOfLines={1}>
-                        {student.mail ?? "—"}
-                      </Text>
-                      <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                        <View
-                          className="h-full rounded-full bg-blue-500"
-                          style={{ width: `${profilePct}%` }}
-                        />
-                      </View>
-                    </View>
-                    <View className="items-end gap-1">
-                      <View className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
-                        <Text className="text-[10px] font-jakarta text-slate-600">
-                          {studentCountry(student)}
-                        </Text>
-                      </View>
-                      <View
-                        className={cn(
-                          "rounded-full border px-2 py-0.5",
-                          statusBadgeClass(status),
-                        )}
-                      >
-                        <Text
-                          className={cn(
-                            "text-[10px] font-medium capitalize",
-                            statusTextClass(status),
-                          )}
-                        >
-                          {status}
-                        </Text>
-                      </View>
-                    </View>
-                  </Pressable>
-                );
-              })
+                        <View className="flex-row items-center gap-3">
+                          <View className="h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+                            <Text className="font-semibold text-white">
+                              {initial}
+                            </Text>
+                          </View>
+                          <View className="min-w-0 flex-1">
+                            <Text
+                              className="font-medium text-slate-900"
+                              numberOfLines={1}
+                            >
+                              {student.name}
+                            </Text>
+                            <Text
+                              className="mt-0.5 text-xs font-jakarta text-slate-400"
+                              numberOfLines={1}
+                            >
+                              {student.mail ?? "—"}
+                            </Text>
+                            <View className="mt-1.5 flex-row items-center gap-2">
+                              <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <View
+                                  className="h-full rounded-full bg-blue-500"
+                                  style={{ width: `${profilePct}%` }}
+                                />
+                              </View>
+                              <Text className="text-[10px] font-medium tabular-nums text-slate-600">
+                                {profilePct}%
+                              </Text>
+                            </View>
+                            <Text
+                              className="mt-1 text-[10px] text-slate-400"
+                              numberOfLines={1}
+                            >
+                              {studentCountry(student)}
+                            </Text>
+                          </View>
+                          <View
+                            className={cn(
+                              "rounded-full border px-2 py-0.5",
+                              statusBadgeClass(status),
+                            )}
+                          >
+                            <Text
+                              className={cn(
+                                "text-[10px] font-medium capitalize",
+                                statusTextClass(status),
+                              )}
+                            >
+                              {status}
+                            </Text>
+                          </View>
+                        </View>
+                      </LinearGradient>
+                    </Pressable>
+                  );
+                })}
+              </View>
             )}
           </View>
         )}
+            </>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -1013,33 +1252,6 @@ function LegendDot({ color, label }: { color: string; label: string }) {
     <View className="flex-row items-center gap-1.5">
       <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
       <Text className="text-xs font-jakarta text-slate-600">{label}</Text>
-    </View>
-  );
-}
-
-function Badge({
-  label,
-  tone = "muted",
-}: {
-  label: string;
-  tone?: "muted" | "success" | "warn";
-}) {
-  const cls =
-    tone === "success"
-      ? "border-emerald-500/40 bg-emerald-50"
-      : tone === "warn"
-        ? "border-amber-500/40 bg-amber-50"
-        : "border-slate-200 bg-slate-50";
-  const textCls =
-    tone === "success"
-      ? "text-emerald-800"
-      : tone === "warn"
-        ? "text-amber-800"
-        : "text-slate-600";
-
-  return (
-    <View className={cn("rounded-full border px-2 py-0.5", cls)}>
-      <Text className={cn("text-[10px] font-medium", textCls)}>{label}</Text>
     </View>
   );
 }
