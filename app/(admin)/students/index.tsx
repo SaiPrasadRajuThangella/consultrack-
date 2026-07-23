@@ -509,7 +509,7 @@ export default function Students() {
                     : "Select a country or status to load student records."}
             </Text>
           </View>
-          <Pressable
+          {/* <Pressable
             onPress={() => router.push("/(admin)/students/add")}
             className="self-stretch items-center justify-center rounded-2xl bg-blue-500 px-3.5 active:bg-blue-600 active:opacity-90"
           >
@@ -520,7 +520,7 @@ export default function Students() {
             <Text className="text-[11px] font-semibold leading-tight text-white">
               Student
             </Text>
-          </Pressable>
+          </Pressable> */}
         </View>
 
         {/* Search + filters */}
