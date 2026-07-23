@@ -11,13 +11,23 @@ import { plusJakartaSansFonts } from "@/src/theme/fonts";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  console.log("[ROOT] render start");
+
   const [loaded, error] = useFonts(plusJakartaSansFonts);
 
+  console.log("[ROOT] fonts state", { loaded, error });
+
   useEffect(() => {
+    console.log("[ROOT] effect fired", { loaded, error });
     if (loaded || error) {
-      void SplashScreen.hideAsync();
+      console.log("[ROOT] calling hideAsync");
+      void SplashScreen.hideAsync()
+        .then(() => console.log("[ROOT] splash hidden OK"))
+        .catch((e) => console.log("[ROOT] splash hide ERROR", e));
     }
   }, [loaded, error]);
+
+  console.log("[ROOT] about to return JSX", { loaded, error });
 
   return (
     <AuthProvider>

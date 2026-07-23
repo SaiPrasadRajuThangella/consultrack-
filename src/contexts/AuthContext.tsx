@@ -19,12 +19,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
+  (async () => {
+    try {
       const stored = await AsyncStorage.getItem("userdata");
-      if (stored) setUser(JSON.parse(stored));
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch (parseErr) {
+          console.warn("[AUTH] corrupt userdata, clearing", parseErr);
+          await AsyncStorage.multiRemove(["token", "refreshToken", "userdata"]);
+        }
+      }
+    } catch (err) {
+      console.warn("[AUTH] failed to read stored auth", err);
+    } finally {
       setLoading(false);
-    })();
-  }, []);
+    }
+  })();
+}, []);
 
   const login = async (email: string, password: string) => {
     try {
